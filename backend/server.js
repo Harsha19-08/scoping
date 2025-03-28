@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
@@ -22,7 +23,7 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Allow frontend requests
+  origin: 'http://localhost:5173', // Allow frontend requests
   credentials: true
 }));
 app.use(express.json());
