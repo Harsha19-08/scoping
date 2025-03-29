@@ -163,7 +163,7 @@ const UserView = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/users/${username}`);
+        const response = await axios.get(`http://3.91.70.49:5000/api/users/${username}`);
         const userData = response.data;
         console.log(userData.codingProfiles);
         

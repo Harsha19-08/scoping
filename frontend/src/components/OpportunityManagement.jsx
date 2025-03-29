@@ -94,7 +94,7 @@ const OpportunityManagement = () => {
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/opportunities', {
+      const response = await axios.get('http://3.91.70.49:5000/api/admin/opportunities', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOpportunities(response.data);
@@ -155,14 +155,14 @@ const OpportunityManagement = () => {
     try {
       if (editingOpportunity) {
         await axios.put(
-          `http://localhost:5000/api/admin/opportunities/${editingOpportunity._id}`,
+          `http://3.91.70.49:5000/api/admin/opportunities/${editingOpportunity._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         toast.success('Opportunity updated successfully');
       } else {
         await axios.post(
-          'http://localhost:5000/api/admin/opportunities',
+          'http://3.91.70.49:5000/api/admin/opportunities',
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -179,7 +179,7 @@ const OpportunityManagement = () => {
   const handleDelete = async (opportunityId) => {
     if (window.confirm('Are you sure you want to delete this opportunity?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/opportunities/${opportunityId}`, {
+        await axios.delete(`http://3.91.70.49:5000/api/admin/opportunities/${opportunityId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Opportunity deleted successfully');

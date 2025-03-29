@@ -133,7 +133,7 @@ const Profile = () => {
         
         // Fetch profile data
         try {
-          const profileResponse = await axios.get('http://localhost:5000/api/profiles/me', {
+          const profileResponse = await axios.get('http://3.91.70.49:5000/api/profiles/me', {
             headers: { Authorization: `Bearer ${auth.token}` }
           });
           profileData = profileResponse.data;
@@ -146,7 +146,7 @@ const Profile = () => {
         
         // Fetch achievements
         try {
-          const achievementsResponse = await axios.get('http://localhost:5000/api/achievements', {
+          const achievementsResponse = await axios.get('http://3.91.70.49:5000/api/achievements', {
             headers: { Authorization: `Bearer ${auth.token}` }
           });
           achievementsData = achievementsResponse.data;
@@ -159,7 +159,7 @@ const Profile = () => {
         
         // Fetch coding profiles - handle 404 gracefully
         try {
-          const codingProfilesResponse = await axios.get('http://localhost:5000/api/profiles/coding-profiles', {
+          const codingProfilesResponse = await axios.get('http://3.91.70.49:5000/api/profiles/coding-profiles', {
             headers: { Authorization: `Bearer ${auth.token}` }
           });
           
@@ -210,7 +210,7 @@ const Profile = () => {
     if (!auth?.token) return;
     
     try {
-      const response = await axios.get('http://localhost:5000/api/profiles/me', {
+      const response = await axios.get('http://3.91.70.49:5000/api/profiles/me', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setProfileData(response.data);
@@ -224,7 +224,7 @@ const Profile = () => {
     if (!auth?.token) return;
     
     try {
-      const response = await axios.get('http://localhost:5000/api/achievements', {
+      const response = await axios.get('http://3.91.70.49:5000/api/achievements', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setAchievements(response.data);
@@ -238,7 +238,7 @@ const Profile = () => {
     if (!auth?.token) return;
     
     try {
-      const response = await axios.get('http://localhost:5000/api/profiles/coding-profiles', {
+      const response = await axios.get('http://3.91.70.49:5000/api/profiles/coding-profiles', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       
@@ -278,7 +278,7 @@ const Profile = () => {
     
     try {
       await axios.put(
-        'http://localhost:5000/api/profiles/me',
+        'http://3.91.70.49:5000/api/profiles/me',
         profileData,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -310,14 +310,14 @@ const Profile = () => {
 
       if (editingAchievement) {
         await axios.put(
-          `http://localhost:5000/api/achievements/${editingAchievement._id}`,
+          `http://3.91.70.49:5000/api/achievements/${editingAchievement._id}`,
           formData,
           { headers: { Authorization: `Bearer ${auth.token}` } }
         );
         toast.success('Achievement updated successfully');
       } else {
         await axios.post(
-          'http://localhost:5000/api/achievements',
+          'http://3.91.70.49:5000/api/achievements',
           formData,
           { headers: { Authorization: `Bearer ${auth.token}` } }
         );
@@ -347,7 +347,7 @@ const Profile = () => {
       }
 
       const response = await axios.delete(
-        `http://localhost:5000/api/achievements/${id}`,
+        `http://3.91.70.49:5000/api/achievements/${id}`,
         {
           headers: { 
             Authorization: `Bearer ${auth.token}`,
@@ -509,7 +509,7 @@ const Profile = () => {
     
     try {
       await axios.put(
-        'http://localhost:5000/api/profiles/me',
+        'http://3.91.70.49:5000/api/profiles/me',
         editProfileData,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );

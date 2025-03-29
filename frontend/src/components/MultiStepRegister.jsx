@@ -114,7 +114,7 @@ const MultiStepRegister = () => {
 
     // Check for uniqueness of mobile number only (roll number is pre-filled)
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/validate', {
+      const response = await axios.post('http://3.91.70.49:5000/api/auth/validate', {
         mobileNumber: formData.mobileNumber
       });
       
@@ -151,7 +151,7 @@ const MultiStepRegister = () => {
         if (isValid) {
           try {
             // Only validate email in the first step (if available)
-            const response = await axios.post('http://localhost:5000/api/auth/validate', {
+            const response = await axios.post('http://3.91.70.49:5000/api/auth/validate', {
               email: formData.email
             });
             

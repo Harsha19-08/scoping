@@ -77,7 +77,7 @@ const Login = () => {
       // Add proper error handling and logging
       console.log('Attempting login with:', { email: loginData.email });
       
-      const response = await axios.post('http://localhost:5000/api/auth/login', loginData);
+      const response = await axios.post('http://3.91.70.49:5000/api/auth/login', loginData);
       
       if (!response.data || !response.data.token || !response.data.user) {
         console.error('Invalid response format:', response.data);

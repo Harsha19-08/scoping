@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Set the base URL for API calls
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://3.91.70.49:5000/api';
 const API_KEY = process.env.CRON_API_KEY || 'default-cron-key';
 
 // MongoDB Connection (with fallback)

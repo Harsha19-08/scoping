@@ -30,7 +30,7 @@ const SyncTimer = ({ onSyncRequired }) => {
   const fetchSyncInfo = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/profiles/sync-info', {
+      const response = await axios.get('http://3.91.70.49:5000/api/profiles/sync-info', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       

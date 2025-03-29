@@ -97,7 +97,7 @@ const Courses = () => {
         return;
       }
       
-      const response = await axios.get('http://localhost:5000/api/courses', {
+      const response = await axios.get('http://3.91.70.49:5000/api/courses', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -108,7 +108,7 @@ const Courses = () => {
       setCourses(response.data);
       
       // Get saved courses for the user
-      const savedResponse = await axios.get('http://localhost:5000/api/courses/saved', {
+      const savedResponse = await axios.get('http://3.91.70.49:5000/api/courses/saved', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -148,13 +148,13 @@ const Courses = () => {
     
     try {
       if (savedCourses.includes(courseId)) {
-        await axios.delete(`http://localhost:5000/api/courses/${courseId}/save`, {
+        await axios.delete(`http://3.91.70.49:5000/api/courses/${courseId}/save`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSavedCourses(savedCourses.filter(id => id !== courseId));
         toast.success('Course removed from saved courses');
       } else {
-        await axios.post(`http://localhost:5000/api/courses/${courseId}/save`, {}, {
+        await axios.post(`http://3.91.70.49:5000/api/courses/${courseId}/save`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSavedCourses([...savedCourses, courseId]);
@@ -177,7 +177,7 @@ const Courses = () => {
     }
     
     try {
-      await axios.post(`http://localhost:5000/api/courses/${courseId}/enroll`, {}, {
+      await axios.post(`http://3.91.70.49:5000/api/courses/${courseId}/enroll`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Successfully enrolled in the course!');

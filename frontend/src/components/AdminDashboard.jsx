@@ -148,7 +148,7 @@ const AdminDashboard = () => {
   const fetchAdminStats = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/stats', {
+      const response = await axios.get('http://3.91.70.49:5000/api/admin/stats', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -225,7 +225,7 @@ const AdminDashboard = () => {
         
         // Fetch leaderboard data for export
         try {
-          const leaderboardResponse = await axios.get('http://localhost:5000/api/leaderboard', {
+          const leaderboardResponse = await axios.get('http://3.91.70.49:5000/api/leaderboard', {
             headers: { 
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -280,7 +280,7 @@ const AdminDashboard = () => {
       toast.info('Preparing detailed export data, please wait...');
       
       // Get detailed user data including coding profiles
-      const response = await axios.get('http://localhost:5000/api/leaderboard/export', {
+      const response = await axios.get('http://3.91.70.49:5000/api/leaderboard/export', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

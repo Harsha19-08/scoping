@@ -92,7 +92,7 @@ const Register = () => {
         confirmPassword: formData.confirmPassword
       };
 
-      const response = await axios.post('http://localhost:5000/api/auth/register', registerData);
+      const response = await axios.post('http://3.91.70.49:5000/api/auth/register', registerData);
       
       if (response.data && response.data.success) {
         // After successful registration, attempt login
@@ -101,7 +101,7 @@ const Register = () => {
           password: formData.password
         };
 
-        const loginRes = await axios.post('http://localhost:5000/api/auth/login', loginData);
+        const loginRes = await axios.post('http://3.91.70.49:5000/api/auth/login', loginData);
         
         if (loginRes.data && loginRes.data.token) {
           login(loginRes.data.user, loginRes.data.token);

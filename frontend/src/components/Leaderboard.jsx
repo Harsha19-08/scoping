@@ -178,7 +178,7 @@ const Leaderboard = () => {
     // Fetch view count from backend
     const fetchViewCount = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/leaderboard/views');
+        const response = await axios.get('http://3.91.70.49:5000/api/leaderboard/views');
         setViewCount(response.data.views);
       } catch (error) {
         console.error('Error fetching view count:', error);
@@ -220,7 +220,7 @@ const Leaderboard = () => {
       });
 
       
-      const res = await axios.get(`http://localhost:5000/api/leaderboard?${params}`, {
+      const res = await axios.get(`http://3.91.70.49:5000/api/leaderboard?${params}`, {
         headers: { 'x-auth-token': token }
       });
       console.log(res.data);

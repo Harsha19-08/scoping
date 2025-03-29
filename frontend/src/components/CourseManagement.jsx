@@ -86,7 +86,7 @@ const CourseManagement = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/courses', {
+      const response = await axios.get('http://3.91.70.49:5000/api/admin/courses', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCourses(response.data);
@@ -145,14 +145,14 @@ const CourseManagement = () => {
     try {
       if (editingCourse) {
         await axios.put(
-          `http://localhost:5000/api/admin/courses/${editingCourse._id}`,
+          `http://3.91.70.49:5000/api/admin/courses/${editingCourse._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         toast.success('Course updated successfully');
       } else {
         await axios.post(
-          'http://localhost:5000/api/admin/courses',
+          'http://3.91.70.49:5000/api/admin/courses',
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -169,7 +169,7 @@ const CourseManagement = () => {
   const handleDelete = async (courseId) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/admin/courses/${courseId}`, {
+        await axios.delete(`http://3.91.70.49:5000/api/admin/courses/${courseId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Course deleted successfully');

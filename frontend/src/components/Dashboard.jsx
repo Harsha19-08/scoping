@@ -279,7 +279,7 @@ const Dashboard = () => {
     
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/profiles/me', {
+      const response = await axios.get('http://3.91.70.49:5000/api/profiles/me', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
 
@@ -341,7 +341,7 @@ const Dashboard = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:5000/api/profiles/${platform}`,
+        `http://3.91.70.49:5000/api/profiles/${platform}`,
         { username },
         {
           headers: {
@@ -403,7 +403,7 @@ const Dashboard = () => {
       
       // Make the API request with timeout
       const responsePromise = axios.put(
-        'http://localhost:5000/api/profiles/update-scores',
+        'http://3.91.70.49:5000/api/profiles/update-scores',
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );

@@ -108,7 +108,7 @@ const Opportunities = () => {
         return;
       }
       
-      const response = await axios.get('http://localhost:5000/api/opportunities', {
+      const response = await axios.get('http://3.91.70.49:5000/api/opportunities', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
