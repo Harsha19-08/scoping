@@ -1,3 +1,18 @@
+// At the very top of the file - suppress specific experimental warnings
+// This must be the first code in the file
+process.env.NODE_NO_WARNINGS = '1';
+// Patch the default emitWarning function to filter out specific warnings
+const originalEmit = process.emitWarning;
+process.emitWarning = function(warning, ...args) {
+  // Filter out the specific warnings about CommonJS loading ES modules
+  if (warning && typeof warning === 'string' && 
+      (warning.includes('CommonJS module') || 
+       warning.includes('loading ES Module') || 
+       warning.includes('using require'))) {
+    return; // Suppress this specific warning
+  }
+  return originalEmit.call(this, warning, ...args);
+};
 
 require('dotenv').config();
 const express = require('express');
@@ -15,6 +30,10 @@ const cron = require('node-cron');
 const Profile = require('./models/Profile');
 const User = require('./models/User');
 const platformAPI = require('./services/platformAPIs');
+const healthRoutes = require('./routes/healthRoutes');
+const passport = require('passport');
+const session = require('express-session');
+const googleAuthRoutes = require('./routes/auth/googleAuth');
 
 const app = express();
 
@@ -23,10 +42,22 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://54.208.104.1'],, // Allow frontend requests
+  origin: [process.env.FRONTEND_URL,'http://3.88.140.180/'], // Allow both frontend origins
   credentials: true
 }));
 app.use(express.json());
+
+// Set up session
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Debug middleware to log requests
 app.use((req, res, next) => {
@@ -72,7 +103,9 @@ cron.schedule('55 11 * * *', async () => {
           console.log(`Syncing ${platform} profile for user ${userId}: ${username}`);
           
           // Get updated profile data
+          console.log(`Fetching REAL data for ${platform}/${username}`);
           const platformData = await platformAPI.getProfileData(platform, username);
+          console.log(`Received platform data:`, JSON.stringify(platformData, null, 2));
           
           // Update profile data
           profile.score = platformData.score || 0;
@@ -273,6 +306,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/courses', coursesRoutes);
 app.use('/api/opportunities', opportunitiesRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
 
 // Test route for CodeChef profile scraping
 app.get('/api/test/codechef/:username', async (req, res) => {
@@ -361,8 +396,21 @@ app.get('/api/test/leetcode/:username', async (req, res) => {
   }
 });
 
+// Test route for Google Auth
+app.get('/api/test/google-auth', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Google OAuth test route is working',
+    googleAuthRoute: '/api/auth/google',
+    googleCallbackRoute: '/api/auth/google/callback',
+    clientID: process.env.GOOGLE_CLIENT_ID 
+      ? `Configured (starts with ${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}...)` 
+      : 'Not configured'
+  });
+});
+
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database_name')
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
@@ -372,7 +420,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something broke!', error: err.message });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

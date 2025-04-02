@@ -34,25 +34,30 @@ class PlatformAPI {
    * @param {Object} difficulty - Problems solved by difficulty
    * @returns {number} - Calculated score
    */
-  calculateLeetCodeScore(totalSolved, ranking, difficulty = {}) {
-    // Points by difficulty:
-    // Easy: 20 points
-    // Medium: 40 points
-    // Hard: 80 points
-    const difficultyPoints = {
-      easy: (difficulty.easy || 0) * 20,
-      medium: (difficulty.medium || 0) * 40,
-      hard: (difficulty.hard || 0) * 80
-    };
+  calculateLeetCodeScore(totalSolved, ranking, difficulty = {}, contestsParticipated = 0) {
+    // New formula: (LCPS*10 + (LCR-1300)^2/10 + LCNC*50)
+    // Where LCPS = Problems solved, LCR = Rating, LCNC = Number of contests participated
     
-    // Base score from all problems
-    const baseScore = Object.values(difficultyPoints).reduce((a, b) => a + b, 0);
+    // Use total solved problems
+    const problemsScore = totalSolved * 10;
     
-    // Ranking bonus (max 2000 points for top ranks)
-    // Better ranks get exponentially more points
-    const rankingBonus = ranking > 0 ? Math.max(0, 2000 * Math.exp(-ranking / 10000)) : 0;
+    // For LeetCode, we often don't have a direct "rating" value, 
+    // so we'll use ranking if available (inverted since lower rank is better)
+    let ratingScore = 0;
+    if (ranking > 0) {
+      // We don't have LeetCode rating directly, so we'll approximate based on ranking
+      // Assuming 3000 - ranking/100 as an approximation for rating
+      const approximatedRating = Math.max(1300, 3000 - ranking/100);
+      ratingScore = Math.pow(approximatedRating - 1300, 2) / 10;
+    }
     
-    return Math.round(baseScore + rankingBonus);
+    // Contests score
+    const contestsScore = contestsParticipated * 50;
+    
+    // Calculate total score
+    const score = problemsScore + ratingScore + contestsScore;
+    
+    return Math.round(score);
   }
 
   /**
@@ -63,32 +68,25 @@ class PlatformAPI {
    * @returns {number} - Calculated score
    */
   calculateCodeforcesScore(rating, problemsSolved, contestsParticipated = 0) {
-    // Rating has a significant impact, especially at higher levels
-    // Rating above 1900 is considered expert level and above
+    // New formula: (CFPS*2 + (CFR-800)^2/10 + CFNC*50)
+    // Where CFPS = Problems solved, CFR = Rating, CFNC = Number of contests participated
+    
+    // Problems solved component
+    const problemsScore = problemsSolved * 2;
+    
+    // Rating component - only if the user has a rating
     let ratingScore = 0;
     if (rating > 0) {
-      if (rating < 1200) {
-        ratingScore = rating * 0.2;
-      } else if (rating < 1900) {
-        ratingScore = 240 + (rating - 1200) * 0.5;
-      } else if (rating < 2400) {
-        ratingScore = 590 + (rating - 1900) * 0.8;
-      } else {
-        ratingScore = 990 + (rating - 2400) * 1.2;
-      }
+      ratingScore = Math.pow(Math.max(0, rating - 800), 2) / 10;
     }
     
-    // Problems solved provides a base score
-    const problemsScore = Math.min(problemsSolved * 20, 1000); // Cap at 1000 for problems
+    // Contests participated component
+    const contestsScore = contestsParticipated * 50;
     
-    // Contest participation shows commitment
-    const contestScore = Math.min(contestsParticipated * 30, 600); // Cap at 600 for contests
+    // Calculate total score
+    const score = problemsScore + ratingScore + contestsScore;
     
-    // Calculate the total score with a bias towards rating
-    const rawScore = (ratingScore * 1.5) + problemsScore + contestScore;
-    
-    // Cap the score at 10000 and ensure it's an integer
-    return Math.min(Math.round(rawScore), 10000);
+    return Math.round(score);
   }
 
   /**
@@ -100,22 +98,25 @@ class PlatformAPI {
    * @returns {number} - Calculated score
    */
   calculateCodeChefScore(rating, problemsSolved, globalRank, contestsParticipated = 0) {
-    // Base rating score (max 3000)
-    const ratingScore = rating ? Math.min(3000, rating) : 0;
+    // New formula: (CCPS*2 + (CCR-1200)^2/10 + CCNC*50)
+    // Where CCPS = Problems solved, CCR = Rating, CCNC = Number of contests participated
     
-    // Problems score based on difficulty
-    let problemsScore = 0;
-    if (problemsSolved > 0) {
-      problemsScore = problemsSolved * 30;
+    // Problems solved component
+    const problemsScore = problemsSolved * 2;
+    
+    // Rating component - only if the user has a rating
+    let ratingScore = 0;
+    if (rating > 0) {
+      ratingScore = Math.pow(Math.max(0, rating - 1200), 2) / 10;
     }
     
-    // Rank bonus (max 1000 points, exponential decay)
-    const rankBonus = globalRank > 0 ? Math.round(1000 * Math.exp(-globalRank / 10000)) : 0;
+    // Contests participated component
+    const contestsScore = contestsParticipated * 50;
     
-    // Contest participation bonus (50 points per contest, up to 1000 points)
-    const contestsBonus = Math.min(1000, contestsParticipated * 50);
+    // Calculate total score
+    const score = problemsScore + ratingScore + contestsScore;
     
-    return Math.round(ratingScore + problemsScore + rankBonus + contestsBonus);
+    return Math.round(score);
   }
 
   /**
@@ -191,63 +192,150 @@ class PlatformAPI {
     try {
       console.log(`Fetching LeetCode profile for user: ${username}`);
       
-      // Use the LeetCode Stats API endpoint
-      const apiUrl = `https://leetcode-stats-api.herokuapp.com/${username}`;
-      console.log(`Making request to LeetCode Stats API: ${apiUrl}`);
+      // LeetCode GraphQL endpoint
+      const graphqlEndpoint = 'https://leetcode.com/graphql';
       
-      const response = await this.axiosInstance.get(apiUrl);
+      // GraphQL query to fetch user profile data
+      const graphqlQuery = {
+        query: `
+          query getUserProfile($username: String!) {
+            matchedUser(username: $username) {
+              username
+              submitStats: submitStatsGlobal {
+                acSubmissionNum {
+                  difficulty
+                  count
+                  submissions
+                }
+              }
+              profile {
+                reputation
+                ranking
+                starRating
+              }
+              contestBadge {
+                name
+              }
+              userCalendar {
+                streak
+                totalActiveDays
+              }
+            }
+          }
+        `,
+        variables: {
+          username: username
+        }
+      };
       
-      // Check if request was successful
-      if (response.data.status !== 'success') {
+      console.log(`Making GraphQL request to LeetCode API for user: ${username}`);
+      
+      // Make the GraphQL request
+      const response = await this.axiosInstance.post(graphqlEndpoint, graphqlQuery, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Referer': 'https://leetcode.com'
+        }
+      });
+      
+      // Check if the response contains valid data
+      if (!response.data || !response.data.data || !response.data.data.matchedUser) {
         throw new Error(`User ${username} not found on LeetCode or API response invalid`);
       }
       
-      const data = response.data;
-      console.log(`LeetCode Stats API data received for ${username}:`, {
-        totalSolved: data.totalSolved,
-        byDifficulty: {
-          easy: data.easySolved,
-          medium: data.mediumSolved,
-          hard: data.hardSolved
-        },
-        ranking: data.ranking,
-        contributionPoints: data.contributionPoints,
-        reputation: data.reputation
+      const userData = response.data.data.matchedUser;
+      
+      console.log(`LeetCode GraphQL API data received for ${username}:`, userData);
+      
+      // Extract problem solving statistics
+      const submitStats = userData.submitStats?.acSubmissionNum || [];
+      
+      // Initialize difficulty counts
+      let allSolved = 0;
+      let easySolved = 0;
+      let mediumSolved = 0;
+      let hardSolved = 0;
+      
+      // Process submission stats by difficulty
+      submitStats.forEach(stat => {
+        const count = stat.count || 0;
+        
+        switch (stat.difficulty) {
+          case 'All':
+            allSolved = count;
+            break;
+          case 'Easy':
+            easySolved = count;
+            break;
+          case 'Medium':
+            mediumSolved = count;
+            break;
+          case 'Hard':
+            hardSolved = count;
+            break;
+        }
       });
+      
+      // Extract profile data
+      const profile = userData.profile || {};
       
       // Map the difficulty data to our existing format
       const difficultyMap = {
-        all: data.totalSolved || 0,
-        easy: data.easySolved || 0,
-        medium: data.mediumSolved || 0,
-        hard: data.hardSolved || 0
+        all: allSolved,
+        easy: easySolved,
+        medium: mediumSolved,
+        hard: hardSolved
       };
       
       // Calculate a score using our scoring algorithm
       const score = this.calculateLeetCodeScore(
-        data.totalSolved, 
-        data.ranking, 
-        difficultyMap
+        allSolved, 
+        profile.ranking || 0, 
+        difficultyMap,
+        userData.contestBadge ? 1 : 0 // If user has a contest badge, count at least 1 contest
       );
+      
+      // Get user stats from calendar if available
+      const calendar = userData.userCalendar || {};
+      const streak = calendar.streak || 0;
+      const activeDays = calendar.totalActiveDays || 0;
       
       return {
         username,
-        problemsSolved: data.totalSolved || 0,
-        ranking: data.ranking || 0,
+        problemsSolved: allSolved,
+        ranking: profile.ranking || 0,
         score,
-        reputation: data.reputation || 0,
-        starRating: 0, // Not provided by the new API
-        easyProblemsSolved: data.easySolved || 0,
-        mediumProblemsSolved: data.mediumSolved || 0,
-        hardProblemsSolved: data.hardSolved || 0,
-        contestsParticipated: 0, // Not provided by the new API
-        rating: 0, // Not provided by the new API
-        contestRanking: 0, // Not provided by the new API
-        contestBadge: '', // Not provided by the new API
+        reputation: profile.reputation || 0,
+        starRating: profile.starRating || 0,
+        easyProblemsSolved: easySolved,
+        mediumProblemsSolved: mediumSolved,
+        hardProblemsSolved: hardSolved,
+        contestsParticipated: userData.contestBadge ? 1 : 0,
+        rating: 0, // Not available in this query
+        contestRanking: 0, // Not available in this query
+        contestBadge: userData.contestBadge?.name || '',
+        streak: streak,
+        activeDays: activeDays,
         lastUpdated: new Date()
       };
     } catch (error) {
       console.error(`Error fetching LeetCode profile for ${username}:`, error);
+      
+      if (error.response) {
+        console.error('LeetCode API Response Status:', error.response.status);
+        console.error('LeetCode API Response Headers:', error.response.headers);
+        console.error('LeetCode API Response Data:', error.response.data);
+      }
+      
+      // Provide more specific error message
+      if (error.message.includes('not found')) {
+        throw new Error(`User ${username} not found on LeetCode`);
+      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        throw new Error(`LeetCode API request timed out. Please try again later.`);
+      } else if (error.response?.status === 429) {
+        throw new Error(`LeetCode API rate limit exceeded. Please try again later.`);
+      }
+      
       throw new Error(`Failed to fetch LeetCode profile: ${error.message}`);
     }
   }
@@ -350,6 +438,12 @@ class PlatformAPI {
         console.log(`Problem difficulty breakdown - Easy: ${easyProblemsSolved}, Medium: ${mediumProblemsSolved}, Hard: ${hardProblemsSolved}`);
       }
       
+      // Validate that we found meaningful data - a user might exist but have no activity
+      if (problemsSolved === 0 && contestsParticipated === 0 && (userData.rating === undefined || userData.rating === 0)) {
+        console.log(`Codeforces user ${username} exists but has no activity data`);
+        throw new Error(`Codeforces user '${username}' exists but has no public activity data. The user might be inactive.`);
+      }
+      
       // 4. Calculate score using our scoring algorithm
       const score = this.calculateCodeforcesScore(
         userData.rating || 0, 
@@ -377,7 +471,7 @@ class PlatformAPI {
       
       // Provide specific error for not found users
       if (error.response?.status === 400 || error.message.includes('not found')) {
-        throw new Error(`User ${username} not found on Codeforces`);
+        throw new Error(`User ${username} not found on Codeforces. Please check the spelling and try again.`);
       }
       
       // Handle rate limiting
@@ -674,36 +768,46 @@ class PlatformAPI {
       const apiUrl = `https://geeks-for-geeks-api.vercel.app/${username}`;
       console.log(`Making request to GFG API: ${apiUrl}`);
       
-      const response = await this.axiosInstance.get(apiUrl);
+      const response = await this.axiosInstance.get(apiUrl, {
+        // Accept any status code to handle ourselves
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        },
+        timeout: 20000 // Increase timeout for sometimes slow third-party API
+      });
       
-      // Check if response has valid data
-      if (!response.data || !response.data.info) {
-        throw new Error(`User ${username} not found on GeeksforGeeks or API response invalid`);
+      // Check if the response indicates the user doesn't exist
+      // This is the correct way to detect a non-existent user according to the API format
+      if (response.data && response.data.error === "Profile Not Found") {
+        throw new Error(`User '${username}' not found on GeeksforGeeks. Please check the spelling and try again.`);
+      }
+      
+      // Additional check for empty responses
+      if (!response.data || response.status !== 200) {
+        throw new Error(`GeeksforGeeks API returned an invalid response for user '${username}'. Please try again later.`);
+      }
+      
+      // Check if we have the required info object
+      if (!response.data.info) {
+        throw new Error(`GeeksforGeeks user '${username}' profile data could not be retrieved. The profile may be private or not yet complete.`);
       }
       
       // Extract user info and solved stats from API response
-      const { info, solvedStats } = response.data;
+      const { info, solvedStats = {} } = response.data;
       
-      console.log(`GFG API data received for ${username}:`, {
-        codingScore: info.codingScore,
-        totalProblemsSolved: info.totalProblemsSolved,
-        instituteRank: info.instituteRank,
-        availableDifficulties: solvedStats ? Object.keys(solvedStats) : []
-      });
+      // Calculate total problems by difficulty levels - handle possible undefined values
+      const easyProblemsSolved = solvedStats?.easy?.count || 0;
+      const mediumProblemsSolved = solvedStats?.medium?.count || 0;
+      const hardProblemsSolved = solvedStats?.hard?.count || 0;
+      const basicProblemsSolved = solvedStats?.basic?.count || 0;
+      const schoolProblemsSolved = solvedStats?.school?.count || 0;
       
-      // Calculate total problems by difficulty levels
-      const easyProblemsSolved = solvedStats.easy?.count || 0;
-      const mediumProblemsSolved = solvedStats.medium?.count || 0;
-      const hardProblemsSolved = solvedStats.hard?.count || 0;
-      const basicProblemsSolved = solvedStats.basic?.count || 0;
-      const schoolProblemsSolved = solvedStats.school?.count || 0;
-      
-      // Verify if total problems solved matches the sum of individual categories
+      // Calculate total problems solved
       const totalByCategories = easyProblemsSolved + mediumProblemsSolved + hardProblemsSolved + basicProblemsSolved + schoolProblemsSolved;
-      const problemsSolved = info.totalProblemsSolved || totalByCategories;
+      const problemsSolved = info.totalProblemsSolved || totalByCategories || 0;
       
       console.log(`GFG API data for ${username}:`, {
-        codingScore: info.codingScore,
+        codingScore: info.codingScore || 0,
         totalProblems: problemsSolved,
         byDifficulty: {
           easy: easyProblemsSolved,
@@ -711,15 +815,11 @@ class PlatformAPI {
           hard: hardProblemsSolved,
           basic: basicProblemsSolved,
           school: schoolProblemsSolved
-        },
-        instituteRank: info.instituteRank,
-        currentStreak: info.currentStreak,
-        maxStreak: info.maxStreak,
-        monthlyScore: info.monthlyScore
+        }
       });
       
       // Calculate total score using our scoring algorithm
-      const score = this.calculateGeeksforGeeksScore(info.codingScore, problemsSolved, info.instituteRank);
+      const score = this.calculateGeeksforGeeksScore(info.codingScore || 0, problemsSolved, info.instituteRank || 0);
 
       // Determine rank based on score
       const rank = this.getGeeksforGeeksRank(score);
@@ -746,8 +846,13 @@ class PlatformAPI {
     } catch (error) {
       console.error(`Error fetching GeeksforGeeks profile for ${username}:`, error);
       
+      // Just pass through user not found errors
       if (error.message.includes('not found')) {
-        throw new Error(`User ${username} not found on GeeksforGeeks`);
+        throw error;
+      }
+      
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        throw new Error(`GeeksforGeeks API request timed out. Please try again later.`);
       }
       
       throw new Error(`Failed to fetch GeeksforGeeks profile: ${error.message}`);
@@ -1021,32 +1126,50 @@ class PlatformAPI {
    */
   async getProfileData(platform, username) {
     try {
+      // Validate inputs
+      if (!username || typeof username !== 'string' || username.trim() === '') {
+        throw new Error(`Username is required for ${platform}`);
+      }
+      
+      // Normalize inputs
+      const normalizedPlatform = platform.toLowerCase().trim();
+      const normalizedUsername = username.trim();
+      
+      console.log(`Getting profile data for ${normalizedPlatform}/${normalizedUsername}`);
+      
       let profileData;
       
-      switch (platform.toLowerCase()) {
+      switch (normalizedPlatform) {
         case 'leetcode':
-          profileData = await this.getLeetCodeProfile(username);
+          profileData = await this.getLeetCodeProfile(normalizedUsername);
           break;
         case 'codeforces':
-          profileData = await this.getCodeforcesProfile(username);
+          profileData = await this.getCodeforcesProfile(normalizedUsername);
           break;
         case 'codechef':
-          profileData = await this.getCodeChefProfile(username);
+          profileData = await this.getCodeChefProfile(normalizedUsername);
           break;
         case 'geeksforgeeks':
-          profileData = await this.getGeeksforGeeksProfile(username);
+          profileData = await this.getGeeksforGeeksProfile(normalizedUsername);
           break;
         case 'hackerrank':
-          profileData = await this.getHackerRankProfile(username);
+          profileData = await this.getHackerRankProfile(normalizedUsername);
           break;
         case 'github':
-          profileData = await this.getGitHubProfile(username);
+          profileData = await this.getGitHubProfile(normalizedUsername);
           break;
         default:
-          throw new Error(`Unsupported platform: ${platform}`);
+          throw new Error(`Unsupported platform: ${normalizedPlatform}`);
+      }
+
+      // Validate that we actually got a proper result
+      if (!profileData || typeof profileData !== 'object') {
+        console.error(`Invalid profile data returned for ${normalizedPlatform}/${normalizedUsername}`);
+        throw new Error(`Failed to retrieve valid profile data for ${normalizedUsername} on ${normalizedPlatform}`);
       }
 
       // Ensure required fields have default values
+      profileData.username = profileData.username || normalizedUsername;
       profileData.problemsSolved = profileData.problemsSolved || 0;
       profileData.score = profileData.score || 0;
       profileData.rating = profileData.rating || 0;
@@ -1054,7 +1177,13 @@ class PlatformAPI {
 
       return profileData;
     } catch (error) {
-      console.error(`Error in getProfileData for ${platform}:`, error);
+      console.error(`Error in getProfileData for ${platform}/${username}:`, error);
+      
+      // For user not found errors, add more helpful text if not already present
+      if (error.message.includes('not found') && !error.message.includes('Please check')) {
+        throw new Error(`${error.message}. Please check the spelling and try again.`);
+      }
+      
       throw error;
     }
   }

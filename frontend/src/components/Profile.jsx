@@ -1,69 +1,70 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  MenuItem,
-  Chip,
-  Card,
-  CardContent,
-  CardActions,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-  Avatar,
-  Divider,
-  Stack,
-} from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, OpenInNew, GitHub, LinkedIn, Email, Phone, School, Class, Badge, CalendarToday } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import {
+  Box, Container, Grid, Typography, Button, Card, CardContent,
+  IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Chip, Stack, MenuItem, useMediaQuery, DialogContentText,
+  CircularProgress, Divider
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import {
+  Add as AddIcon, Edit as EditIcon, GitHub, LinkedIn, Email, Phone, School,
+  Badge, OpenInNew, Delete as DeleteIcon, Close as CloseIcon
+} from '@mui/icons-material';
+import { apiUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-toastify';
+import EditProfile from './EditProfile';
+import { alpha } from '@mui/material/styles';
 
+// Achievement types
 const achievementTypes = [
-  { value: 'internship', label: 'Internship' },
-  { value: 'achievement', label: 'Achievement' },
-  { value: 'project', label: 'Project' },
-  { value: 'certification', label: 'Certification' },
+  { value: 'achievement', label: 'Achievements' },
+  { value: 'project', label: 'Projects' },
+  { value: 'internship', label: 'Internships' },
+  { value: 'certification', label: 'Certifications' }
 ];
 
 const Profile = () => {
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  
+  // Check if this is a profile setup flow
+  const isProfileSetup = new URLSearchParams(location.search).get('setup') === 'true';
+  
+  // State variables for profile editing and viewing
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('project');
+  const [activeTab, setActiveTab] = useState('achievement');
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    phone: '',
+    rollNumber: '',
     department: '',
     section: '',
-    rollNumber: '',
     graduationYear: '',
+    phone: '',
+    linkedinUrl: '',
+    githubUrl: '',
     skills: [],
     interests: [],
     about: '',
-    linkedinUrl: '',
-    imageUrl: '',
-    githubUrl: '',
   });
-
   const [achievements, setAchievements] = useState([]);
+  const [codingProfiles, setCodingProfiles] = useState([]);
+
+  // Dialog states
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingAchievement, setEditingAchievement] = useState(null);
+  const [openProfileDialog, setOpenProfileDialog] = useState(false);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
+  
+  // Achievement form state
   const [achievementForm, setAchievementForm] = useState({
-    type: '',
+    type: 'achievement',
     title: '',
     description: '',
     tags: '',
@@ -72,43 +73,16 @@ const Profile = () => {
     startDate: '',
     endDate: ''
   });
-
-  const [openProfileDialog, setOpenProfileDialog] = useState(false);
-  const [editProfileData, setEditProfileData] = useState({
-    name: '',
-    phone: '',
-    department: '',
-    section: '',
-    rollNumber: '',
-    graduationYear: '',
-    skills: [],
-    interests: [],
-    about: '',
-    linkedinUrl: '',
-    githubUrl: '',
-    imageUrl: '',
-  });
-  const [codingProfiles, setCodingProfiles] = useState({
-    leetcode: { username: '', rating: 0 },
-    codechef: { username: '', rating: 0 },
-    hackerrank: { username: '', rating: 0 },
-    codeforces: { username: '', rating: 0 }
-  });
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const [editingAchievement, setEditingAchievement] = useState(null);
 
   // Filter achievements based on active tab
   const filteredAchievements = achievements.filter(
     achievement => achievement.type === activeTab
   );
 
-  // Tab click handler
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-  };
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Load profile data when component mounts
   useEffect(() => {
     const loadProfileData = async () => {
       if (!auth?.token) {
@@ -120,83 +94,14 @@ const Profile = () => {
       setError(null);
       
       try {
-        // Fetch profile data and achievements separately to handle potential endpoint issues
-        let profileData = null;
-        let achievementsData = [];
-        let codingProfilesData = {
-          leetcode: { username: '', rating: 0 },
-          codechef: { username: '', rating: 0 },
-          hackerrank: { username: '', rating: 0 },
-          codeforces: { username: '', rating: 0 },
-          github: { username: '' }
-        };
-        
-        // Fetch profile data
-        try {
-          const profileResponse = await axios.get('http://3.91.70.49:5000/api/profiles/me', {
-            headers: { Authorization: `Bearer ${auth.token}` }
-          });
-          profileData = profileResponse.data;
-        } catch (profileErr) {
-          console.error('Error fetching profile:', profileErr);
-          if (profileErr.response?.status !== 404) {
-            throw profileErr; // Re-throw if it's not a 404 error
-          }
-        }
-        
-        // Fetch achievements
-        try {
-          const achievementsResponse = await axios.get('http://3.91.70.49:5000/api/achievements', {
-            headers: { Authorization: `Bearer ${auth.token}` }
-          });
-          achievementsData = achievementsResponse.data;
-        } catch (achievementsErr) {
-          console.error('Error fetching achievements:', achievementsErr);
-          if (achievementsErr.response?.status !== 404) {
-            throw achievementsErr; // Re-throw if it's not a 404 error
-          }
-        }
-        
-        // Fetch coding profiles - handle 404 gracefully
-        try {
-          const codingProfilesResponse = await axios.get('http://3.91.70.49:5000/api/profiles/coding-profiles', {
-            headers: { Authorization: `Bearer ${auth.token}` }
-          });
-          
-          // Process coding profiles to ensure both score and rating properties
-          const processedProfiles = {};
-          Object.entries(codingProfilesResponse.data).forEach(([platform, data]) => {
-            processedProfiles[platform] = {
-              ...data,
-              score: data.score || data.rating || 0,
-              rating: data.rating || data.score || 0
-            };
-          });
-          
-          codingProfilesData = processedProfiles;
-        } catch (codingProfilesErr) {
-          console.error('Error fetching coding profiles:', codingProfilesErr);
-          // Don't throw error for coding profiles - use default empty values
-          // This endpoint might not exist yet
-          codingProfilesData = {
-            leetcode: { username: '', rating: 0, score: 0 },
-            codechef: { username: '', rating: 0, score: 0 },
-            hackerrank: { username: '', rating: 0, score: 0 },
-            codeforces: { username: '', rating: 0, score: 0 },
-            geeksforgeeks: { username: '', rating: 0, score: 0 },
-            github: { username: '' }
-          };
-        }
-        
-        // Update state with fetched data
-        if (profileData) setProfileData(profileData);
-        setAchievements(achievementsData);
-        setCodingProfiles(codingProfilesData);
-        
+        // Fetch profile data and achievements separately
+        await Promise.all([
+          fetchProfileData(),
+          fetchAchievements()
+        ]);
       } catch (err) {
         console.error('Error loading profile data:', err);
         setError('Failed to load profile data. Please try again later.');
-        toast.error('Failed to load profile data');
       } finally {
         setLoading(false);
       }
@@ -205,198 +110,71 @@ const Profile = () => {
     loadProfileData();
   }, [auth?.token, navigate]);
 
-  // Keep these functions for individual updates
+    // Automatically open profile dialog if in setup mode
+  useEffect(() => {
+    if (isProfileSetup && auth?.user?.newUser) {
+      setOpenProfileDialog(true);
+    }
+  }, [isProfileSetup, auth?.user?.newUser]);
+
+  // Fetch profile data from API
   const fetchProfileData = async () => {
-    if (!auth?.token) return;
-    
     try {
-      const response = await axios.get('http://3.91.70.49:5000/api/profiles/me', {
+      const profileResponse = await axios.get(`${apiUrl}/profiles/me`, {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
-      setProfileData(response.data);
+      setProfileData(profileResponse.data);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile data');
     }
   };
 
+  // Fetch achievements from API
   const fetchAchievements = async () => {
-    if (!auth?.token) return;
-    
     try {
-      const response = await axios.get('http://3.91.70.49:5000/api/achievements', {
+      const achievementsResponse = await axios.get(`${apiUrl}/achievements`, {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
-      setAchievements(response.data);
+      setAchievements(achievementsResponse.data);
     } catch (error) {
       console.error('Error fetching achievements:', error);
-      toast.error('Failed to load achievements');
     }
   };
 
-  const fetchCodingProfiles = async () => {
-    if (!auth?.token) return;
+  // Tab click handler
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+  };
+
+  // Edit profile - open dialog
+  const handleEditProfileClick = () => {
+    setOpenProfileDialog(true);
+  };
+
+  // Handle profile dialog close
+  const handleCloseProfileDialog = () => {
+    setOpenProfileDialog(false);
+  };
+
+  // Handle profile update from EditProfile component
+  const handleProfileUpdate = (updatedProfileData) => {
+    // Update the local state with the new profile data
+    setProfileData(updatedProfileData);
     
-    try {
-      const response = await axios.get('http://3.91.70.49:5000/api/profiles/coding-profiles', {
-        headers: { Authorization: `Bearer ${auth.token}` }
-      });
-      
-      // Ensure each profile has both score and rating properties
-      const processedProfiles = {};
-      Object.entries(response.data).forEach(([platform, data]) => {
-        processedProfiles[platform] = {
-          ...data,
-          score: data.score || data.rating || 0,
-          rating: data.rating || data.score || 0
-        };
-      });
-      
-      setCodingProfiles(processedProfiles);
-    } catch (error) {
-      console.error('Error fetching coding profiles:', error);
-      // Only show toast for errors other than 404
-      if (error.response?.status !== 404) {
-        toast.error('Failed to load coding profiles');
-      } else {
-        // Set default empty values for coding profiles if endpoint doesn't exist
-        setCodingProfiles({
-          leetcode: { username: '', rating: 0, score: 0 },
-          codechef: { username: '', rating: 0, score: 0 },
-          hackerrank: { username: '', rating: 0, score: 0 },
-          codeforces: { username: '', rating: 0, score: 0 },
-          geeksforgeeks: { username: '', rating: 0, score: 0 },
-          github: { username: '' }
-        });
-      }
-    }
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    if (!auth?.token) return;
+    // Close the profile dialog
+    setOpenProfileDialog(false);
     
-    try {
-      await axios.put(
-        'http://3.91.70.49:5000/api/profiles/me',
-        profileData,
-        { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
-    }
-  };
-
-  const handleAchievementSubmit = async (e) => {
-    e.preventDefault();
-    if (!auth?.token) return;
+    // Reload profile data to ensure we have the latest from the server
+    fetchProfileData();
     
-    try {
-      const formData = {
-        ...achievementForm,
-        tags: achievementForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      };
-
-      // Only include dates if the type is internship
-      if (formData.type !== 'internship') {
-        delete formData.startDate;
-        delete formData.endDate;
-      } else if (!formData.startDate || !formData.endDate) {
-        toast.error('Start date and end date are required for internships');
-        return;
-      }
-
-      if (editingAchievement) {
-        await axios.put(
-          `http://3.91.70.49:5000/api/achievements/${editingAchievement._id}`,
-          formData,
-          { headers: { Authorization: `Bearer ${auth.token}` } }
-        );
-        toast.success('Achievement updated successfully');
-      } else {
-        await axios.post(
-          'http://3.91.70.49:5000/api/achievements',
-          formData,
-          { headers: { Authorization: `Bearer ${auth.token}` } }
-        );
-        toast.success('Achievement added successfully');
-      }
-
-      setOpenDialog(false);
-      setEditingAchievement(null);
-      resetAchievementForm();
-      fetchAchievements();
-    } catch (error) {
-      console.error('Error saving achievement:', error);
-      toast.error('Failed to save achievement');
-    }
+    // Show success message
+    toast.success('Profile updated successfully');
   };
 
-  const handleDeleteAchievement = async (id) => {
-    if (!id || !auth?.token) {
-      toast.error('Invalid achievement ID');
-      return;
-    }
-
-    try {
-      const confirmResult = window.confirm('Are you sure you want to delete this achievement?');
-      if (!confirmResult) {
-        return;
-      }
-
-      const response = await axios.delete(
-        `http://3.91.70.49:5000/api/achievements/${id}`,
-        {
-          headers: { 
-            Authorization: `Bearer ${auth.token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success('Achievement deleted successfully');
-        // Update the local state to remove the deleted achievement
-        setAchievements(prevAchievements => 
-          prevAchievements.filter(achievement => achievement._id !== id)
-        );
-      } else {
-        throw new Error('Failed to delete achievement');
-      }
-    } catch (error) {
-      console.error('Error deleting achievement:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to delete achievement';
-      toast.error(errorMessage);
-      
-      // If the error is 404 (not found), remove it from local state anyway
-      if (error.response?.status === 404) {
-        setAchievements(prevAchievements => 
-          prevAchievements.filter(achievement => achievement._id !== id)
-        );
-      }
-    }
-  };
-
-  const handleEditAchievement = (achievement) => {
-    setEditingAchievement(achievement);
-    setAchievementForm({
-      type: achievement.type,
-      title: achievement.title,
-      description: achievement.description,
-      tags: achievement.tags.join(', '),
-      link: achievement.link || '',
-      imageUrl: achievement.imageUrl || '',
-      startDate: achievement.startDate ? achievement.startDate.split('T')[0] : '',
-      endDate: achievement.endDate ? achievement.endDate.split('T')[0] : ''
-    });
-    setOpenDialog(true);
-  };
-
+  // Reset achievement form
   const resetAchievementForm = () => {
     setAchievementForm({
-      type: '',
+      type: activeTab,
       title: '',
       description: '',
       tags: '',
@@ -405,191 +183,129 @@ const Profile = () => {
       startDate: '',
       endDate: ''
     });
+    setEditingAchievement(null);
   };
 
-  const ScoreGauge = ({ platform, score = 0, data, maxScore = 3000 }) => {
-    // Handle both direct score prop and data.score structure
-    let scoreValue = score;
+  // Handle edit achievement button click
+  const handleEditAchievement = (achievement) => {
+    setEditingAchievement(achievement);
     
-    // If data object is provided (like in UserView), use data.score or data.rating
-    if (data && typeof data === 'object') {
-      scoreValue = data.score || data.rating || 0;
-    }
+    // Convert array tags to comma-separated string if needed
+    const tags = Array.isArray(achievement.tags) 
+      ? achievement.tags.join(', ') 
+      : achievement.tags || '';
     
-    // Ensure score is a valid number
-    const validScore = typeof scoreValue === 'number' && !isNaN(scoreValue) ? scoreValue : 0;
-    // Ensure score is within bounds (0 to maxScore)
-    const boundedScore = Math.max(0, Math.min(validScore, maxScore));
-    // Calculate percentage safely
-    const percentage = maxScore > 0 ? (boundedScore / maxScore) * 100 : 0;
+    setAchievementForm({
+      ...achievement,
+      tags: tags
+    });
     
-    // Build tooltip content
-    const getTooltipContent = () => {
-      let content = `Score: ${boundedScore}`;
-      
-      if (data && typeof data === 'object') {
-        if (typeof platform === 'string' && platform.toLowerCase() === 'codechef' && data.contestsParticipated) {
-          content += `\nContests Participated: ${data.contestsParticipated}`;
-        }
-        
-        if (data.problemsSolved) {
-          content += `\nProblems Solved: ${data.problemsSolved}`;
-        }
-        
-        if (data.rating && data.rating !== boundedScore) {
-          content += `\nRating: ${data.rating}`;
-        }
+    setOpenDialog(true);
+  };
+
+  // Handle achievement form submission
+  const handleAchievementSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!achievementForm.title || !achievementForm.description) {
+        setErrorDialog({
+          open: true,
+          title: 'Missing Required Fields',
+        message: 'Please fill in all required fields.'
+        });
+        return;
       }
       
-      return content;
-    };
-    
-    return (
-      <Box sx={{ 
-        position: 'relative', 
-        width: '100%', 
-        height: 120, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center' 
-      }}
-      title={getTooltipContent()}
-      >
-        <CircularProgress
-          variant="determinate"
-          value={percentage}
-          size={80}
-          thickness={4}
-          sx={{
-            color: '#0088cc',
-            '& .MuiCircularProgress-circle': {
-              strokeLinecap: 'round',
-            },
-          }}
-        />
-        <Box sx={{
-          position: 'absolute',
-          top: 30,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
-            {boundedScore}
-          </Typography>
-        </Box>
-        <Typography variant="body2" sx={{ mt: 1, color: 'rgba(255, 255, 255, 0.7)' }}>
-          {platform}
-        </Typography>
-      </Box>
-    );
-  };
-
-  const handleEditProfileClick = () => {
-    setEditProfileData({
-      name: profileData.name,
-      phone: profileData.phone,
-      department: profileData.department,
-      section: profileData.section,
-      rollNumber: profileData.rollNumber,
-      graduationYear: profileData.graduationYear,
-      skills: profileData.skills,
-      interests: profileData.interests,
-      about: profileData.about,
-      linkedinUrl: profileData.linkedinUrl,
-      githubUrl: profileData.githubUrl,
-      imageUrl: profileData.imageUrl,
-    });
-    setOpenProfileDialog(true);
-  };
-
-  const handleProfileDialogSubmit = async (e) => {
-    e.preventDefault();
-    if (!auth?.token) return;
-    
     try {
-      await axios.put(
-        'http://3.91.70.49:5000/api/profiles/me',
-        editProfileData,
-        { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
-      setProfileData(editProfileData);
-      setOpenProfileDialog(false);
-      toast.success('Profile updated successfully');
+      // Format tags from comma-separated string to array if needed
+      const formattedTags = typeof achievementForm.tags === 'string'
+        ? achievementForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+        : achievementForm.tags;
+      
+      const achievementData = {
+        ...achievementForm,
+        tags: formattedTags
+      };
+      
+      let response;
+      
+      if (editingAchievement) {
+        // Update existing achievement
+        response = await axios.put(
+          `${apiUrl}/achievements/${editingAchievement._id}`,
+          achievementData,
+          { headers: { Authorization: `Bearer ${auth.token}` } }
+        );
+        
+        // Update the achievements state
+        setAchievements(prevAchievements => 
+          prevAchievements.map(achievement => 
+            achievement._id === editingAchievement._id ? response.data : achievement
+          )
+        );
+        
+        toast.success('Achievement updated successfully');
+        } else {
+        // Create new achievement
+        response = await axios.post(
+          `${apiUrl}/achievements`,
+          achievementData,
+          { headers: { Authorization: `Bearer ${auth.token}` } }
+        );
+        
+        // Add the new achievement to the state
+        setAchievements(prevAchievements => [...prevAchievements, response.data]);
+        
+        toast.success('Achievement added successfully');
+      }
+      
+      // Close dialog and reset form
+      setOpenDialog(false);
+      resetAchievementForm();
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      console.error('Error saving achievement:', error);
+      setErrorDialog({
+        open: true,
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to save achievement. Please try again.'
+      });
     }
   };
 
+  // Format image URL (add default if empty)
+  const formatImageUrl = (url) => {
+    if (!url || url.trim() === '') {
+      return 'https://via.placeholder.com/300x200?text=No+Image';
+    }
+    return url;
+  };
+
+  // If loading, show spinner
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '50vh',
-        mt: 4 
-      }}>
-        <CircularProgress size={60} thickness={4} sx={{ color: '#0088cc' }} />
-        <Typography variant="h6" sx={{ mt: 2, color: 'rgba(255, 255, 255, 0.7)' }}>
-          Loading profile data...
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress />
       </Box>
     );
   }
 
+  // If error, show error message
   if (error) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '50vh',
-        mt: 4 
-      }}>
+      <Box sx={{ textAlign: 'center', py: 5 }}>
         <Typography variant="h5" color="error" gutterBottom>
           {error}
         </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => window.location.reload()}
-          sx={{ mt: 2 }}
-        >
+        <Button variant="contained" onClick={() => window.location.reload()}>
           Retry
         </Button>
       </Box>
     );
   }
 
-  if (!profileData || Object.keys(profileData).length === 0) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '50vh',
-        mt: 4 
-      }}>
-        <Typography variant="h5" color="warning.main" gutterBottom>
-          Profile data not found
-        </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => navigate('/dashboard')}
-          sx={{ mt: 2 }}
-        >
-          Go to Dashboard
-        </Button>
-      </Box>
-    );
-  }
-
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ mt: 2, p: { xs: 0, sm: 2 } }}>
       {/* Hero Section */}
       <Box
         sx={{
@@ -630,42 +346,38 @@ const Profile = () => {
             zIndex: 1,
           }}>
             <Typography 
-              variant="h2"
+              variant="h4" 
               sx={{ 
-                fontWeight: 800, 
-                color: '#fff',
-                textTransform: 'uppercase',
-                textShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                letterSpacing: '0.5px',
-                mb: 1,
-                fontSize: { xs: '1.5rem', md: '2rem' }
+                fontWeight: 600, 
+                mb: 0.5,
+                color: theme.palette.common.white,
+                letterSpacing: '-0.5px',
+                textShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.4)' : 'none',
               }}
             >
               {profileData.name}
             </Typography>
             <Typography 
-              variant="h3"
+              variant="body1" 
               sx={{ 
-                color: 'rgba(255,255,255,0.9)', 
-                mb: 3,
-                mt: -1,
-                textShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                fontWeight: 600,
-                opacity: 0.95,
-                fontSize: { xs: '1.8rem', md: '2.2rem' },
-                letterSpacing: '0.5px'
+                mb: 2,
+                color: alpha(theme.palette.common.white, 0.9),
+                fontWeight: 500,
+                textShadow: theme.palette.mode === 'dark' ? '0 2px 6px rgba(0,0,0,0.3)' : 'none',
               }}
             >
-              {profileData.department} • {profileData.section}
+              {profileData.department} Department
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<EditIcon />}
+            <Button 
+              startIcon={<EditIcon />} 
               onClick={handleEditProfileClick}
+              variant="contained"
               sx={{
-                bgcolor: '#0088cc',
-                '&:hover': { bgcolor: '#006699' },
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                bgcolor: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.primary.dark },
+                boxShadow: theme.shadows[4],
+                borderRadius: '8px',
+                px: 2
               }}
             >
               Edit Profile
@@ -675,108 +387,103 @@ const Profile = () => {
           {/* Quick Info Grid */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'rgba(255,255,255,0.7)'
-              }}>
-                <Badge sx={{ color: '#0088cc' }} />
-                <Typography>Roll: {profileData.rollNumber}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="body2" sx={{ width: 100, color: theme.palette.text.secondary }}>
+                  Roll Number
+                </Typography>
+                <Badge sx={{ color: theme.palette.primary.main }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, ml: 1 }}>
+                  {profileData.rollNumber}
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'rgba(255,255,255,0.7)'
-              }}>
-                <School sx={{ color: '#0088cc' }} />
-                <Typography>Batch of {profileData.graduationYear}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="body2" sx={{ width: 100, color: theme.palette.text.secondary }}>
+                  Department
+                </Typography>
+                <School sx={{ color: theme.palette.primary.main }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, ml: 1 }}>
+                  {profileData.department}
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'rgba(255,255,255,0.7)'
-              }}>
-                <Email sx={{ color: '#0088cc' }} />
-                <Typography>{profileData.email}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="body2" sx={{ width: 100, color: theme.palette.text.secondary }}>
+                  Email
+                </Typography>
+                <Email sx={{ color: theme.palette.primary.main }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, ml: 1 }}>
+                  {auth?.user?.email}
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'rgba(255,255,255,0.7)'
-              }}>
-                <Phone sx={{ color: '#0088cc' }} />
-                <Typography>{profileData.phone}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="body2" sx={{ width: 100, color: theme.palette.text.secondary }}>
+                  Phone
+                </Typography>
+                <Phone sx={{ color: theme.palette.primary.main }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, ml: 1 }}>
+                  {profileData.phone || 'Not provided'}
+                </Typography>
               </Box>
             </Grid>
           </Grid>
 
           {/* About Section */}
-          {profileData.about && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                About
-              </Typography>
-              <Typography sx={{ 
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1.7,
-                whiteSpace: 'pre-wrap'
-              }}>
-                {profileData.about}
-              </Typography>
-            </Box>
-          )}
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              my: 2, 
+              color: theme.palette.text.secondary,
+              lineHeight: 1.7,
+              whiteSpace: 'pre-wrap'
+            }}
+          >
+            {profileData.about || 'No bio provided yet.'}
+          </Typography>
 
           {/* Skills & Interests */}
-          <Grid container spacing={4} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Skills
-              </Typography>
+          {profileData.skills && profileData.skills.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Skills</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {profileData.skills.map((skill, index) => (
-                  <Chip
-                    key={index}
-                    label={skill}
+                  <Chip 
+                    key={index} 
+                    label={skill} 
                     sx={{
-                      bgcolor: 'rgba(0,136,204,0.1)',
-                      color: '#0088cc',
-                      border: '1px solid rgba(0,136,204,0.2)',
-                      '&:hover': { bgcolor: 'rgba(0,136,204,0.2)' }
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      color: theme.palette.primary.main,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
                     }}
                   />
                 ))}
               </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Interests
-              </Typography>
+            </Box>
+          )}
+          {profileData.interests && profileData.interests.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Interests</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {profileData.interests.map((interest, index) => (
-                  <Chip
-                    key={index}
-                    label={interest}
+                  <Chip 
+                    key={index} 
+                    label={interest} 
                     sx={{
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                      color: 'rgba(255,255,255,0.7)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                      bgcolor: theme.palette.action.selected,
+                      color: theme.palette.text.secondary,
+                      border: `1px solid ${theme.palette.divider}`,
+                      '&:hover': { bgcolor: theme.palette.action.hover }
                     }}
                   />
                 ))}
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          )}
 
           {/* Social Links */}
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -785,8 +492,8 @@ const Profile = () => {
                 href={profileData.githubUrl} 
                 target="_blank"
                 sx={{ 
-                  color: 'rgba(255,255,255,0.7)',
-                  '&:hover': { color: '#0088cc' }
+                  color: theme.palette.text.secondary,
+                  '&:hover': { color: theme.palette.primary.main }
                 }}
               >
                 <GitHub />
@@ -797,8 +504,8 @@ const Profile = () => {
                 href={profileData.linkedinUrl} 
                 target="_blank"
                 sx={{ 
-                  color: 'rgba(255,255,255,0.7)',
-                  '&:hover': { color: '#0088cc' }
+                  color: theme.palette.text.secondary,
+                  '&:hover': { color: theme.palette.primary.main }
                 }}
               >
                 <LinkedIn />
@@ -827,8 +534,8 @@ const Profile = () => {
               setOpenDialog(true);
             }}
             sx={{ 
-              bgcolor: '#0088cc',
-              '&:hover': { bgcolor: '#006699' }
+              bgcolor: theme.palette.primary.main,
+              '&:hover': { bgcolor: theme.palette.primary.dark }
             }}
           >
             Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -837,7 +544,7 @@ const Profile = () => {
 
         {/* Achievement Tabs */}
         <Box sx={{ 
-          bgcolor: 'rgba(255,255,255,0.03)',
+          bgcolor: theme.palette.action.hover,
           borderRadius: '16px',
           p: 2,
           mb: 3
@@ -852,7 +559,7 @@ const Profile = () => {
                 height: '6px',
               },
               '&::-webkit-scrollbar-thumb': {
-                backgroundColor: 'rgba(255,255,255,0.1)',
+                backgroundColor: theme.palette.divider,
                 borderRadius: '3px',
               }
             }}
@@ -863,10 +570,10 @@ const Profile = () => {
                 label={type.label}
                 onClick={() => handleTabClick(type.value)}
                 sx={{
-                  bgcolor: activeTab === type.value ? '#0088cc' : 'rgba(255,255,255,0.05)',
-                  color: activeTab === type.value ? 'white' : 'rgba(255,255,255,0.7)',
+                  bgcolor: activeTab === type.value ? theme.palette.primary.main : theme.palette.action.selected,
+                  color: activeTab === type.value ? theme.palette.primary.contrastText : theme.palette.text.secondary,
                   '&:hover': {
-                    bgcolor: activeTab === type.value ? '#006699' : 'rgba(255,255,255,0.1)',
+                    bgcolor: activeTab === type.value ? theme.palette.primary.dark : theme.palette.action.hover,
                   }
                 }}
               />
@@ -880,21 +587,48 @@ const Profile = () => {
             {filteredAchievements.map((achievement) => (
               <Grid item xs={12} sm={6} md={4} key={achievement._id}>
                 <Card sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.03)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  bgcolor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.divider}`,
                   borderRadius: '16px',
                   transition: 'transform 0.2s',
+                  overflow: 'hidden',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
                   '&:hover': {
                     transform: 'translateY(-4px)'
                   }
                 }}>
-                  <CardContent>
+                  {/* Image Section */}
+                  <Box sx={{ 
+                    position: 'relative',
+                    width: '100%',
+                    height: '180px',
+                    overflow: 'hidden',
+                    bgcolor: theme.palette.action.disabledBackground
+                  }}>
+                    <Box 
+                      component="img"
+                      src={formatImageUrl(achievement.imageUrl)}
+                      alt={achievement.title}
+                      sx={{ 
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = "https://via.placeholder.com/150";
+                      }}
+                    />
+                  </Box>
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Typography variant="h6" sx={{ mb: 2 }}>
                       {achievement.title}
                     </Typography>
                     <Typography variant="body2" sx={{ 
-                      color: 'rgba(255,255,255,0.7)',
+                      color: theme.palette.text.secondary,
                       mb: 2 
                     }}>
                       {achievement.description}
@@ -907,8 +641,8 @@ const Profile = () => {
                           label={typeof tag === 'string' ? tag.trim() : tag}
                           size="small"
                           sx={{
-                            bgcolor: 'rgba(0,136,204,0.1)',
-                            color: '#0088cc',
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            color: theme.palette.primary.main,
                           }}
                         />
                       ))}
@@ -918,7 +652,7 @@ const Profile = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                      <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
                         {achievement.startDate}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1 }}>
@@ -926,7 +660,7 @@ const Profile = () => {
                           <IconButton
                             size="small"
                             onClick={() => window.open(achievement.link, '_blank')}
-                            sx={{ color: 'rgba(255,255,255,0.7)' }}
+                            sx={{ color: theme.palette.text.secondary }}
                           >
                             <OpenInNew fontSize="small" />
                           </IconButton>
@@ -934,7 +668,7 @@ const Profile = () => {
                         <IconButton
                           size="small"
                           onClick={() => handleEditAchievement(achievement)}
-                          sx={{ color: 'rgba(255,255,255,0.7)' }}
+                          sx={{ color: theme.palette.text.secondary }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -950,12 +684,12 @@ const Profile = () => {
             sx={{ 
               textAlign: 'center', 
               py: 8,
-              bgcolor: 'rgba(255,255,255,0.03)',
+              bgcolor: theme.palette.action.hover,
               borderRadius: '16px',
             }}
           >
-            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-              No {activeTab}s added yet
+            <Typography variant="h6" sx={{ color: theme.palette.text.disabled, mb: 2 }}>
+              No {activeTab === 'achievement' ? 'achievements' : activeTab + 's'} added yet
             </Typography>
             <Button
               variant="contained"
@@ -965,8 +699,8 @@ const Profile = () => {
                 setOpenDialog(true);
               }}
               sx={{ 
-                bgcolor: '#0088cc',
-                '&:hover': { bgcolor: '#006699' }
+                bgcolor: theme.palette.primary.main,
+                '&:hover': { bgcolor: theme.palette.primary.dark }
               }}
             >
               Add Your First {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -1064,7 +798,22 @@ const Profile = () => {
                   fullWidth
                   label="Image URL"
                   value={achievementForm.imageUrl}
-                  onChange={(e) => setAchievementForm({ ...achievementForm, imageUrl: e.target.value })}
+                  onChange={(e) => {
+                    // Basic URL validation
+                    const url = e.target.value.trim();
+                    // Allow empty value or a valid URL
+                    setAchievementForm({ 
+                      ...achievementForm, 
+                      imageUrl: url 
+                    });
+                  }}
+                  error={!!(achievementForm.imageUrl && !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(achievementForm.imageUrl))}
+                  helperText={
+                    achievementForm.imageUrl && 
+                    !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(achievementForm.imageUrl) ?
+                    "Please enter a valid URL" : 
+                    "Enter an image URL (e.g., https://example.com/image.jpg)"
+                  }
                 />
               </Grid>
               {achievementForm.type === 'internship' && (
@@ -1104,257 +853,41 @@ const Profile = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Profile Edit Dialog */}
-      <Dialog 
-        open={openProfileDialog} 
-        onClose={() => setOpenProfileDialog(false)} 
-        maxWidth="md" 
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            bgcolor: 'rgba(0,0,0,0.9)',
-            backgroundImage: 'linear-gradient(rgba(0,136,204,0.05), rgba(0,0,0,0.9))',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '16px',
-          }
-        }}
+      {/* Edit Profile Component */}
+      <EditProfile 
+        open={openProfileDialog}
+        onClose={handleCloseProfileDialog}
+        profileData={profileData}
+        auth={auth}
+        isProfileSetup={isProfileSetup}
+        onProfileUpdate={handleProfileUpdate}
+      />
+
+      {/* Error Dialog */}
+      <Dialog
+        open={errorDialog.open}
+        onClose={() => setErrorDialog({ open: false, title: '', message: '' })}
+        aria-labelledby="error-dialog-title"
+        aria-describedby="error-dialog-description"
       >
-        <DialogTitle sx={{ 
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          px: 3,
-          py: 2,
-        }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            Edit Profile
+        <DialogTitle id="error-dialog-title">{errorDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography 
+            id="error-dialog-description"
+            component="div"
+          >
+            {errorDialog.message}
           </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <Box component="form" onSubmit={handleProfileDialogSubmit}>
-            <Grid container spacing={3}>
-              {/* Personal Information */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, color: '#0088cc' }}>
-                  Personal Information
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Name"
-                  value={editProfileData.name}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, name: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                      '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.08)',
-                      }
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  value={editProfileData.phone}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, phone: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Academic Information */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#0088cc' }}>
-                  Academic Information
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Department"
-                  value={editProfileData.department}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, department: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Section"
-                  value={editProfileData.section}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, section: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Roll Number"
-                  value={editProfileData.rollNumber}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, rollNumber: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Graduation Year"
-                  type="number"
-                  value={editProfileData.graduationYear}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, graduationYear: e.target.value })}
-                  required
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Social Links */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#0088cc' }}>
-                  Social Links
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="LinkedIn URL"
-                  value={editProfileData.linkedinUrl}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, linkedinUrl: e.target.value })}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="GitHub URL"
-                  value={editProfileData.githubUrl}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, githubUrl: e.target.value })}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Skills & Interests */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#0088cc' }}>
-                  Skills & Interests
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Skills (comma-separated)"
-                  value={editProfileData.skills.join(', ')}
-                  onChange={(e) => setEditProfileData({ 
-                    ...editProfileData, 
-                    skills: e.target.value.split(',').map(skill => skill.trim()).filter(skill => skill)
-                  })}
-                  multiline
-                  rows={2}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Interests (comma-separated)"
-                  value={editProfileData.interests.join(', ')}
-                  onChange={(e) => setEditProfileData({ 
-                    ...editProfileData, 
-                    interests: e.target.value.split(',').map(interest => interest.trim()).filter(interest => interest)
-                  })}
-                  multiline
-                  rows={2}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* About */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#0088cc' }}>
-                  About
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="About"
-                  multiline
-                  rows={4}
-                  value={editProfileData.about}
-                  onChange={(e) => setEditProfileData({ ...editProfileData, about: e.target.value })}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                    }
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Box>
         </DialogContent>
-        <DialogActions sx={{ 
-          p: 3, 
-          borderTop: '1px solid rgba(255,255,255,0.1)',
-        }}>
-          <Button 
-            onClick={() => setOpenProfileDialog(false)}
-            sx={{ color: 'rgba(255,255,255,0.7)' }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleProfileDialogSubmit} 
-            variant="contained" 
-            sx={{
-              bgcolor: '#0088cc',
-              '&:hover': { bgcolor: '#006699' },
-            }}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
+        <DialogActions>
+            <Button 
+            onClick={() => setErrorDialog({ open: false, title: '', message: '' })} 
+            color="primary" 
+              variant="contained" 
+            >
+            OK
+            </Button>
+          </DialogActions>
       </Dialog>
     </Container>
   );

@@ -1,0 +1,172 @@
+{
+  "hash": "b6e5460e",
+  "configHash": "c9f0e93d",
+  "lockfileHash": "9f843e65",
+  "browserHash": "2c968079",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "a471141c",
+      "needsInterop": true
+    },
+    "react-dom": {
+      "src": "../../node_modules/react-dom/index.js",
+      "file": "react-dom.js",
+      "fileHash": "25e6998d",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "09eb67f1",
+      "needsInterop": true
+    },
+    "react/jsx-runtime": {
+      "src": "../../node_modules/react/jsx-runtime.js",
+      "file": "react_jsx-runtime.js",
+      "fileHash": "0aabcefe",
+      "needsInterop": true
+    },
+    "@mui/icons-material": {
+      "src": "../../node_modules/@mui/icons-material/esm/index.js",
+      "file": "@mui_icons-material.js",
+      "fileHash": "f0c5b078",
+      "needsInterop": false
+    },
+    "@mui/icons-material/Brightness4": {
+      "src": "../../node_modules/@mui/icons-material/Brightness4.js",
+      "file": "@mui_icons-material_Brightness4.js",
+      "fileHash": "e0d310ea",
+      "needsInterop": true
+    },
+    "@mui/icons-material/Brightness7": {
+      "src": "../../node_modules/@mui/icons-material/Brightness7.js",
+      "file": "@mui_icons-material_Brightness7.js",
+      "fileHash": "5b686e51",
+      "needsInterop": true
+    },
+    "@mui/icons-material/Google": {
+      "src": "../../node_modules/@mui/icons-material/Google.js",
+      "file": "@mui_icons-material_Google.js",
+      "fileHash": "03272450",
+      "needsInterop": true
+    },
+    "@mui/icons-material/Logout": {
+      "src": "../../node_modules/@mui/icons-material/Logout.js",
+      "file": "@mui_icons-material_Logout.js",
+      "fileHash": "f36a2085",
+      "needsInterop": true
+    },
+    "@mui/icons-material/Menu": {
+      "src": "../../node_modules/@mui/icons-material/Menu.js",
+      "file": "@mui_icons-material_Menu.js",
+      "fileHash": "2cc7a443",
+      "needsInterop": true
+    },
+    "@mui/material": {
+      "src": "../../node_modules/@mui/material/index.js",
+      "file": "@mui_material.js",
+      "fileHash": "245bb93b",
+      "needsInterop": false
+    },
+    "@mui/material/styles": {
+      "src": "../../node_modules/@mui/material/styles/index.js",
+      "file": "@mui_material_styles.js",
+      "fileHash": "c2c4428a",
+      "needsInterop": false
+    },
+    "@react-oauth/google": {
+      "src": "../../node_modules/@react-oauth/google/dist/index.esm.js",
+      "file": "@react-oauth_google.js",
+      "fileHash": "66f46ee9",
+      "needsInterop": false
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "4db8c016",
+      "needsInterop": false
+    },
+    "date-fns": {
+      "src": "../../node_modules/date-fns/index.js",
+      "file": "date-fns.js",
+      "fileHash": "6e24b9cc",
+      "needsInterop": false
+    },
+    "exceljs": {
+      "src": "../../node_modules/exceljs/dist/exceljs.min.js",
+      "file": "exceljs.js",
+      "fileHash": "21c3de44",
+      "needsInterop": true
+    },
+    "github-calendar": {
+      "src": "../../node_modules/github-calendar/lib/index.js",
+      "file": "github-calendar.js",
+      "fileHash": "e4315d7a",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "acb8a407",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "02c477ad",
+      "needsInterop": false
+    },
+    "react-swipeable": {
+      "src": "../../node_modules/react-swipeable/es/index.js",
+      "file": "react-swipeable.js",
+      "fileHash": "14449226",
+      "needsInterop": false
+    },
+    "react-toastify": {
+      "src": "../../node_modules/react-toastify/dist/react-toastify.esm.mjs",
+      "file": "react-toastify.js",
+      "fileHash": "4722c91d",
+      "needsInterop": false
+    },
+    "recharts": {
+      "src": "../../node_modules/recharts/es6/index.js",
+      "file": "recharts.js",
+      "fileHash": "9fc21114",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-7X7P6NTJ": {
+      "file": "chunk-7X7P6NTJ.js"
+    },
+    "chunk-BESGNC46": {
+      "file": "chunk-BESGNC46.js"
+    },
+    "chunk-YRTHPB3T": {
+      "file": "chunk-YRTHPB3T.js"
+    },
+    "chunk-WDFOOIPG": {
+      "file": "chunk-WDFOOIPG.js"
+    },
+    "chunk-UEM4EUPS": {
+      "file": "chunk-UEM4EUPS.js"
+    },
+    "chunk-SQMQSDHP": {
+      "file": "chunk-SQMQSDHP.js"
+    },
+    "chunk-HRNEA2F4": {
+      "file": "chunk-HRNEA2F4.js"
+    },
+    "chunk-UZNMMFWU": {
+      "file": "chunk-UZNMMFWU.js"
+    },
+    "chunk-N4N5IM6X": {
+      "file": "chunk-N4N5IM6X.js"
+    },
+    "chunk-LK32TJAX": {
+      "file": "chunk-LK32TJAX.js"
+    }
+  }
+}
